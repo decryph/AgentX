@@ -6,7 +6,12 @@ from googleapiclient.discovery import build
 
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 CALENDAR_ID = st.secrets["GOOGLE_CALENDAR_ID"]
-SERVICE_ACCOUNT_FILE = st.secrets["SERVICE_ACCOUNT_FILE"]
+key_json = st.secrets["SERVICE_ACCOUNT_KEY"]
+
+with tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".json") as f:
+    f.write(key_json)
+    f.flush()
+    SERVICE_ACCOUNT_FILE = f.name
 
 
 # Check if a time is busy
