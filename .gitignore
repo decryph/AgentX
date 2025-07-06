@@ -1,0 +1,17 @@
+ 
+# Environment variables
+.env
+
+# Google Service Account JSON file
+formal-incline-465110-f3-8ade757f5d04.json
+
+# Python virtual environment
+venv/
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# VS Code settings
+.vscode/
