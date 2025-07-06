@@ -1,12 +1,13 @@
 # services/calendar.py
 
-import os
+import streamlit as st
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
 SCOPES = ['https://www.googleapis.com/auth/calendar']
-SERVICE_ACCOUNT_FILE = "C:\\Users\\SHRUTI\\Desktop\\AgentX\\formal-incline-465110-f3-8ade757f5d04.json"
-CALENDAR_ID = os.getenv('GOOGLE_CALENDAR_ID','shryabeauty123@gmail.com')
+CALENDAR_ID = st.secrets["GOOGLE_CALENDAR_ID"]
+SERVICE_ACCOUNT_FILE = st.secrets["SERVICE_ACCOUNT_FILE"]
+
 
 # Check if a time is busy
 from datetime import datetime, timedelta, timezone
