@@ -1,52 +1,50 @@
 # services/calendar.py
+
 import os
 import json
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from datetime import datetime, timedelta, timezone
 
-# Try to import streamlit, but don't fail if it's not there
+# Try to import streamlit
 try:
     import streamlit as st
+    has_streamlit = True
 except ImportError:
-    st = None
+    has_streamlit = False
 
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 
-# --- Correctly load the Calendar ID ---
-if st and hasattr(st, 'secrets') and "GOOGLE_CALENDAR_ID" in st.secrets:
-    CALENDAR_ID = st.secrets["GOOGLE_CALENDAR_ID"]
+# Get calendar ID from environment or Streamlit secrets
+if has_streamlit and hasattr(st, 'secrets') and 'GOOGLE_CALENDAR_ID' in st.secrets:
+    CALENDAR_ID = st.secrets['GOOGLE_CALENDAR_ID']
 else:
-    # Fallback for local development
-    CALENDAR_ID = os.getenv('GOOGLE_CALENDAR_ID', 'primary')
-
+    CALENDAR_ID = os.getenv('GOOGLE_CALENDAR_ID','shryabeauty123@gmail.com')
 
 def get_gcalendar():
-    """Builds the Google Calendar service object, using secrets when available."""
-    credentials = None
-    # Check if running in Streamlit Cloud and secrets are available
-    if st and hasattr(st, 'secrets') and "GOOGLE_CREDENTIALS_JSON" in st.secrets:
-        creds_json_str = st.secrets["GOOGLE_CREDENTIALS_JSON"]
-        creds_info = json.loads(creds_json_str)
-        credentials = service_account.Credentials.from_service_account_info(
-            creds_info, scopes=SCOPES
-        )
+    # If running on Streamlit Cloud, use secrets
+    if has_streamlit and hasattr(st, 'secrets') and 'GOOGLE_CREDENTIALS_JSON' in st.secrets:
+        try:
+            # Parse JSON from secrets
+            creds_dict = json.loads(st.secrets['GOOGLE_CREDENTIALS_JSON'])
+            credentials = service_account.Credentials.from_service_account_info(
+                creds_dict, scopes=SCOPES)
+            print("Using credentials from Streamlit secrets")
+        except Exception as e:
+            print(f"Error parsing credentials from secrets: {e}")
+            raise
     else:
-        # Fallback for local development
-        # IMPORTANT: Ensure this JSON file is in your services folder or provide the correct path
-        local_path = os.path.join(os.path.dirname(__file__), "formal-incline-465110-f3-8ade757f5d04.json")
-        if os.path.exists(local_path):
-             credentials = service_account.Credentials.from_service_account_file(
-                local_path, scopes=SCOPES)
-        else:
-            raise FileNotFoundError("Service account JSON not found for local development.")
-
+        # Local development fallback
+        SERVICE_ACCOUNT_FILE = "C:\\Users\\SHRUTI\\Desktop\\AgentX\\formal-incline-465110-f3-8ade757f5d04.json"
+        credentials = service_account.Credentials.from_service_account_file(
+            SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+    
     service = build('calendar', 'v3', credentials=credentials)
     return service
 
-
-
+# Rest of your functions remain the same
 def get_free_slots(start_time, end_time):
+    # Your existing function...
     service = get_gcalendar()
     
     # Ensure UTC timezone
@@ -82,9 +80,9 @@ def get_free_slots(start_time, end_time):
         print(f"ERROR: {e}")
         print(f"Request body: {request_body}")
         return f"Error checking availability: {str(e)}"
-    
 
 def book_appointment(summary, start_time, end_time):
+    # Your existing function...
     service = get_gcalendar()
 
     event = {
@@ -95,4 +93,3 @@ def book_appointment(summary, start_time, end_time):
 
     event = service.events().insert(calendarId=CALENDAR_ID, body=event).execute()
     return event.get('htmlLink')
-
