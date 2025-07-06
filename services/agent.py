@@ -1,3 +1,5 @@
+# agent.py
+
 import os
 from langchain.agents import Tool, initialize_agent
 from langchain.agents.agent_types import AgentType
@@ -6,47 +8,45 @@ from gcalendar import get_free_slots, book_appointment
 import dateparser
 from datetime import datetime, timedelta, timezone
 
-# Try to import streamlit
+# Get API key from Streamlit secrets or environment
 try:
     import streamlit as st
-    has_streamlit = True
+    api_key = st.secrets["GOOGLE_API_KEY"] if "GOOGLE_API_KEY" in st.secrets else os.getenv("GOOGLE_API_KEY")
 except ImportError:
-    has_streamlit = False
+    # Local development
     from dotenv import load_dotenv
     load_dotenv()
-
-# Get API key correctly
-if has_streamlit and hasattr(st, 'secrets') and 'GOOGLE_API_KEY' in st.secrets:
-    api_key = st.secrets["GOOGLE_API_KEY"]
-else:
     api_key = os.getenv("GOOGLE_API_KEY")
 
-# Gemini LLM setup with explicit API key and correct model name
+# Gemini LLM setup with correct model name and API key
 llm = ChatGoogleGenerativeAI(
-    model="gemini-2.0-flash",  # Fixed model name
+    model="gemini-pro",  # Corrected model name
     temperature=0.3,
-    convert_system_message_to_human=True,  # Fixed missing comma
+    convert_system_message_to_human=True,  # Added missing comma
     google_api_key=api_key  # Explicitly provide API key
 )
 
-# Define tools
-def check_availability_tool(time_str):
-    parsed_time = dateparser.parse(time_str, settings={'TIMEZONE': 'UTC', 'RETURN_AS_TIMEZONE_AWARE': True})
-    if not parsed_time:
+# Simplified calendar tool function
+def check_availability(time_str):
+    dt = dateparser.parse(time_str, settings={'TIMEZONE': 'UTC', 'RETURN_AS_TIMEZONE_AWARE': True})
+    if not dt:
         return "Sorry, I couldn't understand the time you provided."
-    
-    if parsed_time.tzinfo is None:
-        parsed_time = parsed_time.replace(tzinfo=timezone.utc)
+        
+    # Ensure timezone
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
     else:
-        parsed_time = parsed_time.astimezone(timezone.utc)
-    
-    return get_free_slots(parsed_time, parsed_time + timedelta(hours=1))
+        dt = dt.astimezone(timezone.utc)
+        
+    # Check availability
+    return get_free_slots(dt, dt + timedelta(hours=1))
 
+# Tools with simplified functions
 tools = [
     Tool(
         name="CheckAvailability",
-        func=check_availability_tool,
-        description="Use this tool to check available time slots"
+        func=check_availability,
+        description="Use this tool to check available time slots. Input should be a date and time."
     ),
     Tool(
         name="BookAppointment",
