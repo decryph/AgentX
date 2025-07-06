@@ -1,11 +1,14 @@
 # app.py
 
-import streamlit as st
 import os, sys
+import streamlit as st
 import re
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'services')))
-from agent import agent  # imports your LangChain Gemini agent
+# FIX THIS 👇
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'services')))
+
+from agent import agent
+
 
 def style_response(text):
     url_match = re.search(r'(https?://\S+)', text)
