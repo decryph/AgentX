@@ -1,25 +1,36 @@
 # services/calendar.py
 
-import streamlit as st
+import os
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
+import json
+# Try to import streamlit, but don't fail if it's not there
+try:
+    import streamlit as st
+except ImportError:
+    st = None
 
 SCOPES = ['https://www.googleapis.com/auth/calendar']
-CALENDAR_ID = st.secrets["GOOGLE_CALENDAR_ID"]
-key_json = st.secrets["SERVICE_ACCOUNT_KEY"]
-
-with tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".json") as f:
-    f.write(key_json)
-    f.flush()
-    SERVICE_ACCOUNT_FILE = f.name
-
+# This will now be loaded from secrets in the cloud
+CALENDAR_ID = os.getenv('GOOGLE_CALENDAR_ID','shryabeauty123@gmail.com')
 
 # Check if a time is busy
 from datetime import datetime, timedelta, timezone
 
 def get_gcalendar():
-    credentials = service_account.Credentials.from_service_account_file(
-        SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+    # Check if running in Streamlit Cloud and secrets are available
+    if st and hasattr(st, 'secrets') and "GOOGLE_CREDENTIALS_JSON" in st.secrets:
+        creds_json_str = st.secrets["GOOGLE_CREDENTIALS_JSON"]
+        creds_info = json.loads(creds_json_str)
+        credentials = service_account.Credentials.from_service_account_info(
+            creds_info, scopes=SCOPES
+        )
+    else:
+        # Fallback for local development
+        SERVICE_ACCOUNT_FILE = "C:\\Users\\SHRUTI\\Desktop\\AgentX\\formal-incline-465110-f3-8ade757f5d04.json"
+        credentials = service_account.Credentials.from_service_account_file(
+            SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+            
     service = build('calendar', 'v3', credentials=credentials)
     return service
 
