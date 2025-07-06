@@ -8,40 +8,46 @@ from gcalendar import get_free_slots, book_appointment
 import dateparser
 from datetime import datetime, timedelta, timezone
 
-# Get API key from Streamlit secrets or environment
+# Handle API key for both local and cloud environments
 try:
     import streamlit as st
-    api_key = st.secrets["GOOGLE_API_KEY"] if "GOOGLE_API_KEY" in st.secrets else os.getenv("GOOGLE_API_KEY")
+    # Use Streamlit secrets when available
+    if hasattr(st, 'secrets') and "GOOGLE_API_KEY" in st.secrets:
+        api_key = st.secrets["GOOGLE_API_KEY"]
+    else:
+        # Fall back to .env file
+        from dotenv import load_dotenv
+        load_dotenv()
+        api_key = os.getenv("GOOGLE_API_KEY")
 except ImportError:
-    # Local development
+    # Local environment only
     from dotenv import load_dotenv
     load_dotenv()
     api_key = os.getenv("GOOGLE_API_KEY")
 
-# Gemini LLM setup with correct model name and API key
+# Gemini LLM setup - FIXED ERRORS
 llm = ChatGoogleGenerativeAI(
-    model="gemini-pro",  # Corrected model name
+    model="gemini-pro",  # FIXED: correct model name
     temperature=0.3,
-    convert_system_message_to_human=True,  # Added missing comma
-    google_api_key=api_key  # Explicitly provide API key
+    convert_system_message_to_human=True,  # FIXED: added missing comma
+    google_api_key=api_key  # FIXED: explicitly provide API key
 )
 
-# Simplified calendar tool function
+# Simplified calendar function
 def check_availability(time_str):
     dt = dateparser.parse(time_str, settings={'TIMEZONE': 'UTC', 'RETURN_AS_TIMEZONE_AWARE': True})
     if not dt:
         return "Sorry, I couldn't understand the time you provided."
-        
+    
     # Ensure timezone
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
     else:
         dt = dt.astimezone(timezone.utc)
-        
-    # Check availability
+    
     return get_free_slots(dt, dt + timedelta(hours=1))
 
-# Tools with simplified functions
+# Tools with simplified implementations
 tools = [
     Tool(
         name="CheckAvailability",
