@@ -1,5 +1,5 @@
 # agent.py
-
+import streamlit as st
 import os
 from dotenv import load_dotenv
 from langchain.agents import Tool, initialize_agent
@@ -8,12 +8,14 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from gcalendar import get_free_slots, book_appointment
 # Load .env file
 load_dotenv()
+os.environ["GooGLE_API_KEY"] = st.secrets["GooGLE_API_KEY"]
 
 # Gemini LLM setup
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.0-flash",
     temperature=0.3,
     convert_system_message_to_human=True
+    google_api_key=st.secrets["GooGLE_API_KEY"]
 )
 
 # Wrap your calendar tools
