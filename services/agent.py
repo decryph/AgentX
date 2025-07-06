@@ -7,28 +7,24 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from gcalendar import get_free_slots, book_appointment
 
 # Try to import streamlit, but don't fail if it's not there
+# Inside agent.py
+
+# Get API key from environment or Streamlit secrets
 try:
     import streamlit as st
+    if hasattr(st, 'secrets') and 'GOOGLE_API_KEY' in st.secrets:
+        google_api_key = st.secrets['GOOGLE_API_KEY']
+    else:
+        google_api_key = os.getenv("GOOGLE_API_KEY")
 except ImportError:
-    st = None
+    google_api_key = os.getenv("GOOGLE_API_KEY")
 
-# --- Correctly load the API Key ---
-api_key = None
-if st and hasattr(st, 'secrets') and "GOOGLE_API_KEY" in st.secrets:
-    # Use the key from Streamlit secrets when deployed
-    api_key = st.secrets["GOOGLE_API_KEY"]
-else:
-    # Fallback for local development (requires python-dotenv)
-    from dotenv import load_dotenv
-    load_dotenv()
-    api_key = os.getenv("GOOGLE_API_KEY")
-
-# --- Gemini LLM setup (Fixed syntax and model name) ---
+# Then use this key with your LLM
 llm = ChatGoogleGenerativeAI(
-    model="gemini-pro",
+    model="gemini-2.0-flash",
     temperature=0.3,
-    convert_system_message_to_human=True, # Added missing comma
-    google_api_key=api_key
+    convert_system_message_to_human=True,
+    google_api_key=google_api_key
 )
 
 # --- Simplified Tool Functions ---
