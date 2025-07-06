@@ -22,25 +22,35 @@ else:
     CALENDAR_ID = os.getenv('GOOGLE_CALENDAR_ID','shryabeauty123@gmail.com')
 
 def get_gcalendar():
-    # If running on Streamlit Cloud, use secrets
-    if has_streamlit and hasattr(st, 'secrets') and 'GOOGLE_CREDENTIALS_JSON' in st.secrets:
+    if has_streamlit and hasattr(st, 'secrets') and 'SERVICE_ACCOUNT_KEY' in st.secrets:
         try:
-            # Parse JSON from secrets
-            creds_dict = json.loads(st.secrets['GOOGLE_CREDENTIALS_JSON'])
-            credentials = service_account.Credentials.from_service_account_info(
-                creds_dict, scopes=SCOPES)
-            print("Using credentials from Streamlit secrets")
+            import tempfile
+            import json
+
+            key_json = st.secrets["SERVICE_ACCOUNT_KEY"]
+
+            # Write secret JSON to a temp file
+            with tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".json") as f:
+                f.write(key_json)
+                f.flush()
+                service_account_path = f.name
+
+            credentials = service_account.Credentials.from_service_account_file(
+                service_account_path, scopes=SCOPES
+            )
+            print("✅ Using credentials from Streamlit secrets")
         except Exception as e:
-            print(f"Error parsing credentials from secrets: {e}")
+            print("❌ Error loading credentials from Streamlit secrets:", e)
             raise
     else:
-        # Local development fallback
-        SERVICE_ACCOUNT_FILE = "C:\\Users\\SHRUTI\\Desktop\\AgentX\\formal-incline-465110-f3-8ade757f5d04.json"
+        # Fallback: local dev only (optional)
+        SERVICE_ACCOUNT_FILE = os.getenv("SERVICE_ACCOUNT_FILE", "path/to/your-local.json")
         credentials = service_account.Credentials.from_service_account_file(
-            SERVICE_ACCOUNT_FILE, scopes=SCOPES)
-    
-    service = build('calendar', 'v3', credentials=credentials)
-    return service
+            SERVICE_ACCOUNT_FILE, scopes=SCOPES
+        )
+
+    return build("calendar", "v3", credentials=credentials)
+
 
 # Rest of your functions remain the same
 def get_free_slots(start_time, end_time):
