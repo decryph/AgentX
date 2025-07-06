@@ -17,28 +17,39 @@ llm = ChatGoogleGenerativeAI(
     google_api_key=GOOGLE_API_KEY  # ✅ this is what forces API key usage
 )
 
+def check_availability_wrapper(x):
+    dt = dateparser.parse(x, settings={'TIMEZONE': 'UTC', 'RETURN_AS_TIMEZONE_AWARE': True})
+    if not dt:
+        return "Sorry, couldn't parse the time."
+    return get_free_slots(
+        dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc),
+        (dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc)) + timedelta(hours=1)
+    )
+
+def book_appointment_wrapper(x):
+    dt = dateparser.parse(x, settings={'TIMEZONE': 'UTC', 'RETURN_AS_TIMEZONE_AWARE': True})
+    if not dt:
+        return "Sorry, couldn't parse booking time."
+    return book_appointment(
+        "Meeting",
+        dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc),
+        (dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc)) + timedelta(hours=1)
+    )
+
 # tools as before...
 tools = [
     Tool(
         name="CheckAvailability",
-        func=lambda x: (
-            lambda dt: get_free_slots(
-                dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc),
-                (dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc)) + timedelta(hours=1)
-            )
-        )[1] if (dt := dateparser.parse(x, settings={'TIMEZONE': 'UTC', 'RETURN_AS_TIMEZONE_AWARE': True})) else "Sorry, couldn't parse the time."
+        func=check_availability_wrapper,
+        description="Use this tool to check available time slots"
     ),
     Tool(
         name="BookAppointment",
-        func=lambda x: (
-            lambda dt: book_appointment(
-                "Meeting",
-                dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc),
-                (dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc)) + timedelta(hours=1)
-            )
-        )[1] if (dt := dateparser.parse(x, settings={'TIMEZONE': 'UTC', 'RETURN_AS_TIMEZONE_AWARE': True})) else "Sorry, couldn't parse booking time."
+        func=book_appointment_wrapper,
+        description="Use this tool to book a calendar event"
     ),
 ]
+
 
 agent = initialize_agent(
     tools,
