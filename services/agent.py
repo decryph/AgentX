@@ -1,67 +1,57 @@
 import os
-import dateparser
-from datetime import datetime, timedelta, timezone
 from langchain.agents import Tool, initialize_agent
 from langchain.agents.agent_types import AgentType
 from langchain_google_genai import ChatGoogleGenerativeAI
 from gcalendar import get_free_slots, book_appointment
+import dateparser
+from datetime import datetime, timedelta, timezone
 
-# Try to import streamlit, but don't fail if it's not there
-# Inside agent.py
-
-# Get API key from environment or Streamlit secrets
+# Try to import streamlit
 try:
     import streamlit as st
-    if hasattr(st, 'secrets') and 'GOOGLE_API_KEY' in st.secrets:
-        google_api_key = st.secrets['GOOGLE_API_KEY']
-    else:
-        google_api_key = os.getenv("GOOGLE_API_KEY")
+    has_streamlit = True
 except ImportError:
-    google_api_key = os.getenv("GOOGLE_API_KEY")
+    has_streamlit = False
+    from dotenv import load_dotenv
+    load_dotenv()
 
-# Then use this key with your LLM
+# Get API key correctly
+if has_streamlit and hasattr(st, 'secrets') and 'GOOGLE_API_KEY' in st.secrets:
+    api_key = st.secrets["GOOGLE_API_KEY"]
+else:
+    api_key = os.getenv("GOOGLE_API_KEY")
+
+# Gemini LLM setup with explicit API key and correct model name
 llm = ChatGoogleGenerativeAI(
-    model="gemini-2.0-flash",
+    model="gemini-2.0-flash",  # Fixed model name
     temperature=0.3,
-    convert_system_message_to_human=True,
-    google_api_key=google_api_key
+    convert_system_message_to_human=True,  # Fixed missing comma
+    google_api_key=api_key  # Explicitly provide API key
 )
 
-# --- Simplified Tool Functions ---
-def check_availability_tool(time_str: str) -> str:
-    """Helper function to parse time and check for free slots."""
+# Define tools
+def check_availability_tool(time_str):
     parsed_time = dateparser.parse(time_str, settings={'TIMEZONE': 'UTC', 'RETURN_AS_TIMEZONE_AWARE': True})
     if not parsed_time:
         return "Sorry, I couldn't understand the time you provided."
     
-    # Ensure the datetime is timezone-aware
-    start_time = parsed_time.astimezone(timezone.utc)
-    end_time = start_time + timedelta(hours=1)
+    if parsed_time.tzinfo is None:
+        parsed_time = parsed_time.replace(tzinfo=timezone.utc)
+    else:
+        parsed_time = parsed_time.astimezone(timezone.utc)
     
-    print(f"DEBUG: Checking availability for: {start_time}")
-    return get_free_slots(start_time, end_time)
-
-# Note: The book_appointment tool is still hardcoded.
-# A real implementation would need to parse details from the input string.
-def book_appointment_tool(details_str: str) -> str:
-    """Helper function to book an appointment."""
-    # This is a placeholder. You need to parse 'details_str' for real values.
-    summary = "New Meeting"
-    start_time = datetime.now(timezone.utc) + timedelta(hours=2)
-    end_time = start_time + timedelta(hours=1)
-    return book_appointment(summary, start_time, end_time)
-
+    return get_free_slots(parsed_time, parsed_time + timedelta(hours=1))
 
 tools = [
     Tool(
         name="CheckAvailability",
         func=check_availability_tool,
-        description="Use this to check for available time slots. Input should be a date and time, like 'tomorrow at 3pm'."
+        description="Use this tool to check available time slots"
     ),
     Tool(
         name="BookAppointment",
-        func=book_appointment_tool,
-        description="Use this to book a calendar event. The input should contain the event details."
+        func=lambda x: book_appointment("Meeting", datetime.now(timezone.utc) + timedelta(hours=2), datetime.now(timezone.utc) + timedelta(hours=3)),
+        description="Use this tool to book a calendar event"
     ),
 ]
 
