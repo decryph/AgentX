@@ -1,9 +1,10 @@
 # services/calendar.py
-
 import os
+import json
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-import json
+from datetime import datetime, timedelta, timezone
+
 # Try to import streamlit, but don't fail if it's not there
 try:
     import streamlit as st
@@ -11,13 +12,18 @@ except ImportError:
     st = None
 
 SCOPES = ['https://www.googleapis.com/auth/calendar']
-# This will now be loaded from secrets in the cloud
-CALENDAR_ID = os.getenv('GOOGLE_CALENDAR_ID','shryabeauty123@gmail.com')
 
-# Check if a time is busy
-from datetime import datetime, timedelta, timezone
+# --- Correctly load the Calendar ID ---
+if st and hasattr(st, 'secrets') and "GOOGLE_CALENDAR_ID" in st.secrets:
+    CALENDAR_ID = st.secrets["GOOGLE_CALENDAR_ID"]
+else:
+    # Fallback for local development
+    CALENDAR_ID = os.getenv('GOOGLE_CALENDAR_ID', 'primary')
+
 
 def get_gcalendar():
+    """Builds the Google Calendar service object, using secrets when available."""
+    credentials = None
     # Check if running in Streamlit Cloud and secrets are available
     if st and hasattr(st, 'secrets') and "GOOGLE_CREDENTIALS_JSON" in st.secrets:
         creds_json_str = st.secrets["GOOGLE_CREDENTIALS_JSON"]
@@ -27,12 +33,17 @@ def get_gcalendar():
         )
     else:
         # Fallback for local development
-        SERVICE_ACCOUNT_FILE = "C:\\Users\\SHRUTI\\Desktop\\AgentX\\formal-incline-465110-f3-8ade757f5d04.json"
-        credentials = service_account.Credentials.from_service_account_file(
-            SERVICE_ACCOUNT_FILE, scopes=SCOPES)
-            
+        # IMPORTANT: Ensure this JSON file is in your services folder or provide the correct path
+        local_path = os.path.join(os.path.dirname(__file__), "formal-incline-465110-f3-8ade757f5d04.json")
+        if os.path.exists(local_path):
+             credentials = service_account.Credentials.from_service_account_file(
+                local_path, scopes=SCOPES)
+        else:
+            raise FileNotFoundError("Service account JSON not found for local development.")
+
     service = build('calendar', 'v3', credentials=credentials)
     return service
+
 
 
 def get_free_slots(start_time, end_time):
