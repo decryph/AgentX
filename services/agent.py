@@ -37,8 +37,9 @@ def get_free_slots(start_time, end_time):
                 
 def check_availability_wrapper(x):
     dt = dateparser.parse(x, settings={'TIMEZONE': 'UTC', 'RETURN_AS_TIMEZONE_AWARE': True})
-    if not dt:
-        return "Sorry, couldn't parse the time."
+   if not dt:
+    return "Oops! Couldn't figure out the time you meant. Could you rephrase it?"
+
     return get_free_slots(
         dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc),
         (dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc)) + timedelta(hours=1)
@@ -47,7 +48,8 @@ def check_availability_wrapper(x):
 def book_appointment_wrapper(x):
     dt = dateparser.parse(x, settings={'TIMEZONE': 'UTC', 'RETURN_AS_TIMEZONE_AWARE': True})
     if not dt:
-        return "Sorry, couldn't parse booking time."
+       return "Apologies! I'm having trouble connecting to the calendar right now. Please try again in a few minutes."
+
     return book_appointment(
         "Meeting",
         dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc),
