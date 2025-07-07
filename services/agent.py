@@ -24,7 +24,7 @@ def get_free_slots(start_time, end_time):
     for attempt in range(3):  # Try up to 3 times
         try:
             # Your API call to Google Calendar here
-            result = actual_api_call_to_get_slots(start_time, end_time)
+            result = get_calendar_events(start_time, end_time) 
             return result['calendars'][CALENDAR_ID]['busy']
         except Exception as e:
             logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
