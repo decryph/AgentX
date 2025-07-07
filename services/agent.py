@@ -37,13 +37,23 @@ def get_free_slots(start_time, end_time):
                 
 def check_availability_wrapper(x):
     dt = dateparser.parse(x, settings={'TIMEZONE': 'UTC', 'RETURN_AS_TIMEZONE_AWARE': True})
-   if not dt:
-    return "Oops! Couldn't figure out the time you meant. Could you rephrase it?"
+    if not dt:
+        return "Oops! Couldn't figure out the time you meant. Could you rephrase it?"
 
-    return get_free_slots(
-        dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc),
-        (dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc)) + timedelta(hours=1)
-    )
+    start = dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc)
+    end = start + timedelta(hours=1)
+
+    slots = get_free_slots(start, end)
+
+    if isinstance(slots, str):  # means an error message was returned
+        return slots
+
+    if not slots:
+        return "You're all free during this time! 🎉"
+    
+    formatted = "\n".join([f"{s['start']} to {s['end']}" for s in slots])
+    return f"You're busy during:\n{formatted}"
+
 
 def book_appointment_wrapper(x):
     dt = dateparser.parse(x, settings={'TIMEZONE': 'UTC', 'RETURN_AS_TIMEZONE_AWARE': True})
