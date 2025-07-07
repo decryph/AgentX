@@ -4,6 +4,7 @@ import streamlit as st
 from datetime import datetime, timedelta, timezone
 import dateparser
 import time
+import logging
 from langchain.agents import Tool, initialize_agent
 from langchain.agents.agent_types import AgentType
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -17,14 +18,20 @@ llm = ChatGoogleGenerativeAI(
     temperature=0.3,
     google_api_key=GOOGLE_API_KEY  # ✅ this is what forces API key usage
 )
+
+logger = logging.getLogger(__name__)
 def get_free_slots(start_time, end_time):
     for attempt in range(3):  # Try up to 3 times
         try:
-            # Your existing code
+            # Your API call to Google Calendar here
+            result = actual_api_call_to_get_slots(start_time, end_time)
             return result['calendars'][CALENDAR_ID]['busy']
         except Exception as e:
-            if attempt < 2:  # Don't sleep on the last attempt
-                time.sleep(1)  # Wait 1 second before retrying
+            logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
+            if "ResourceExhausted" in str(e):
+                return "Sorry, the calendar API has exceeded its daily limit. Try again later."
+            if attempt < 2:
+                time.sleep(1)  # wait before retry
             else:
                 return f"Error checking calendar: {str(e)}"
                 
