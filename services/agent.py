@@ -20,37 +20,23 @@ llm = ChatGoogleGenerativeAI(
 )
 
 logger = logging.getLogger(__name__)
-def get_free_slots(start_time, end_time):
-    for attempt in range(3):  # Try up to 3 times
-        try:
-            # Your API call to Google Calendar here
-            result = get_calendar_events(start_time, end_time) 
-            return result['calendars'][CALENDAR_ID]['busy']
-        except Exception as e:
-            logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
-            if "ResourceExhausted" in str(e):
-                return "Sorry, the calendar API has exceeded its daily limit. Try again later."
-            if attempt < 2:
-                time.sleep(1)  # wait before retry
-            else:
-                return f"Error checking calendar: {str(e)}"
                 
 def check_availability_wrapper(x):
     dt = dateparser.parse(x, settings={'TIMEZONE': 'UTC', 'RETURN_AS_TIMEZONE_AWARE': True})
     if not dt:
-        return "Oops! Couldn't figure out the time you meant. Could you rephrase it?"
+        return "Oops! Couldn't understand the time you meant. Could you rephrase it?"
 
     start = dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc)
     end = start + timedelta(hours=1)
 
     slots = get_free_slots(start, end)
 
-    if isinstance(slots, str):  # means an error message was returned
-        return slots
+    if isinstance(slots, str):
+        return slots  # It's an error message
 
     if not slots:
-        return "You're all free during this time! 🎉"
-    
+        return "You're free during that time slot! 🎉"
+
     formatted = "\n".join([f"{s['start']} to {s['end']}" for s in slots])
     return f"You're busy during:\n{formatted}"
 
