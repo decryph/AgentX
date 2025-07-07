@@ -16,7 +16,17 @@ llm = ChatGoogleGenerativeAI(
     temperature=0.3,
     google_api_key=GOOGLE_API_KEY  # ✅ this is what forces API key usage
 )
-
+def get_free_slots(start_time, end_time):
+    for attempt in range(3):  # Try up to 3 times
+        try:
+            # Your existing code
+            return result['calendars'][CALENDAR_ID]['busy']
+        except Exception as e:
+            if attempt < 2:  # Don't sleep on the last attempt
+                time.sleep(1)  # Wait 1 second before retrying
+            else:
+                return f"Error checking calendar: {str(e)}"
+                
 def check_availability_wrapper(x):
     dt = dateparser.parse(x, settings={'TIMEZONE': 'UTC', 'RETURN_AS_TIMEZONE_AWARE': True})
     if not dt:
